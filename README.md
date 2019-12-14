@@ -26,3 +26,6 @@ osu! 游戏客户端的中国镜像
 ### Bug提交
 * 任何人可以在[Issues](https://github.com/ChingCdesu/Sayo_Installer/issues)提交建议或者bug
 * 请不要发表过激和带有人身攻击的言论
+
+
+> ## Thanks for int's template!
