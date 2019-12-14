@@ -86,7 +86,9 @@ namespace Sayo_Installer
                 cd.Start();
                 return;
             }
-
+            
+            // issue: 在有原安装的情况下，修改路径，仍会仅下载差别文件
+            // 说明：理论上不允许在有原安装的情况下修改路径，一台电脑仅允许有一个osu!
             installPath = new System.IO.DirectoryInfo(dialog.SelectedPath.Trim()).FullName;
             dialog.Dispose();
             install_path.Content = installPath;
@@ -210,7 +212,6 @@ namespace Sayo_Installer
                             {
 
                             }
-
                         };
 
                         threads[index] = new Thread(new ThreadStart(() =>
@@ -225,7 +226,7 @@ namespace Sayo_Installer
                                 {
                                     string url = req.GetUrl();
                                     string filename = url.Substring(url.LastIndexOf('/'));
-                                    this.counter_label.Content = string.Format("Failed to install {0}", filename);
+                                    this.counter_label.Content = string.Format("Failed to download {0}", filename);
                                 }));
                             }
                         }));
@@ -252,16 +253,14 @@ namespace Sayo_Installer
             {
                 // 在此判断是否更新
                 string json = Encoding.GetEncoding("utf-8").GetString(data);
-                //json=json.Replace("\r", "");
-                //json=json.Replace("\n", "");
-                //json=json.Replace("\t", "");
-                //json=json.Replace(" ", "");
-                //json = json.Trim();
 
+                // C# 自带类的json解析器
                 JavaScriptSerializer js = new JavaScriptSerializer();
                 FileSystem[] files = js.Deserialize<FileSystem[]>(json);
 
                 MD5 md5 = new MD5CryptoServiceProvider();
+
+                // 要下载的文件内容
                 Dictionary<string, string> fileMD5 = new Dictionary<string, string>();
 
                 string location = Utils.GetClientLocation();
@@ -277,6 +276,7 @@ namespace Sayo_Installer
 
                     foreach (FileInfo fi in fileInfos)
                     {
+                        // 过滤掉不存在于json的文件
                         if (!Utils.RemoteFileContains(files, fi.Name)) continue;
 
                         if (fi.Extension == ".dll" || fi.Extension == ".exe")
@@ -296,6 +296,8 @@ namespace Sayo_Installer
                         }
                     }
                 }
+                // 如果该文件夹是根目录，那就在根目录下面创建新的文件夹
+                // 防止文件安装在磁盘根目录
                 else if (Environment.CurrentDirectory ==
                     Directory.GetDirectoryRoot(Environment.CurrentDirectory))
                 {
@@ -315,9 +317,6 @@ namespace Sayo_Installer
                 foreach (var f in files)
                 {
                     if (f.type != "file") continue;
-                    //string InstallerFullPath = Environment.GetCommandLineArgs()[0];
-                    //string InstallerFileName = InstallerFullPath.Substring(InstallerFullPath.LastIndexOf('\\'));
-                    //if (f.Name == InstallerFileName) continue;
 
                     string ext = f.Name.Substring(f.Name.LastIndexOf('.'));
                     if (ext == ".dll" || ext == ".exe")
@@ -407,6 +406,8 @@ namespace Sayo_Installer
             })).Start();
         }
 
+        // 收到退出信号强制结束
+        // 可能会导致文件损坏
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             // 强制结束正在进行的所有线程

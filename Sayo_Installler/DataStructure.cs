@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Sayo_Installer.DataStructure
 {
+    // json文件信息类
     class FileSystem
     {
         public string MD5 { get; set; }
