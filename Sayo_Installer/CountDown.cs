@@ -41,7 +41,7 @@ namespace Sayo_Installer
             timer.Change(Timeout.Infinite, this.interval);
         }
 
-        // 强制直接结束
+        // 强制结束
         public void Done()
         {
             timer.Change(Timeout.Infinite, this.interval);

@@ -15,6 +15,7 @@ namespace Sayo_Installer
             RegistryKey usrk = Registry.CurrentUser;
             // HKEY_CURRENT_USER\Software\osu!
             RegistryKey osuKey = usrk.OpenSubKey(@"Software\osu!", false);
+            string ret = string.Empty;
             if (null != osuKey)
             {
                 string osuID = osuKey.GetValue("UninstallID").ToString();
@@ -29,15 +30,13 @@ namespace Sayo_Installer
                     string FilePath = pathoj.ToString();
                     string DicPath = FilePath.Substring(0, FilePath.LastIndexOf('\\'));
                     if (System.IO.Directory.Exists(DicPath))
-                        return DicPath;
-                    else
-                        return string.Empty;
+                        ret = DicPath;
                 }
+                osuKey.Close();
             }
             usrk.Close();
             lmrk.Close();
-            osuKey.Close();
-            return string.Empty;
+            return ret;
         }
 
         public static bool RemoteFileContains(DataStructure.FileSystem[] fs, string fileName)
