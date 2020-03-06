@@ -20,17 +20,19 @@ namespace Sayo_Installer
             {
                 string osuID = osuKey.GetValue("UninstallID").ToString();
 
-                // HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{osuID}
                 RegistryKey swrk = lmrk.OpenSubKey(
                     @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{" + osuID + "}", false);
-                object pathoj = swrk.GetValue("DisplayIcon");
-                swrk.Close();
-                if (null != pathoj)
+                if (swrk != null)
                 {
-                    string FilePath = pathoj.ToString();
-                    string DicPath = FilePath.Substring(0, FilePath.LastIndexOf('\\'));
-                    if (System.IO.Directory.Exists(DicPath))
-                        ret = DicPath;
+                    object pathoj = swrk.GetValue("DisplayIcon");
+                    swrk.Close();
+                    if (null != pathoj)
+                    {
+                        string FilePath = pathoj.ToString();
+                        string DicPath = FilePath.Substring(0, FilePath.LastIndexOf('\\'));
+                        if (System.IO.Directory.Exists(DicPath))
+                            ret = DicPath;
+                    }
                 }
                 osuKey.Close();
             }

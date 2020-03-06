@@ -35,85 +35,78 @@ namespace Sayo_Installer
         {
             byte[] data = reqBody;
 
-            try
+            // 创建一个 Http 请求
+            HttpWebRequest request = WebRequest.Create(this.url) as HttpWebRequest;
+
+            // string contentType = string.Empty;
+            // request.ContentType =
+            //     headers != null && headers.TryGetValue("ContentType", out contentType) ?
+            //     "*/*" : contentType;
+            // 设置 Content-Type
+
+            if (headers != null)
             {
-                // 创建一个 Http 请求
-                HttpWebRequest request = WebRequest.Create(this.url) as HttpWebRequest;
+                request.Headers = new WebHeaderCollection();
+                foreach (var header in headers)
+                    request.Headers.Add(header.Key, header.Value);
+            }
 
-                // string contentType = string.Empty;
-                // request.ContentType =
-                //     headers != null && headers.TryGetValue("ContentType", out contentType) ?
-                //     "*/*" : contentType;
-                // 设置 Content-Type
+            request.Method = this.mode.ToString();
+            // 设置请求方法
 
-                if (headers != null)
+            request.KeepAlive = false;
+
+            if (this.mode == HttpReqMode.POST)
+            {
+                request.ContentLength = data.Length;
+                // 设置请求长度
+
+                using (Stream requestStream = request.GetRequestStream())
                 {
-                    request.Headers = new WebHeaderCollection();
-                    foreach (var header in headers)
-                        request.Headers.Add(header.Key, header.Value);
-                }
-
-                request.Method = this.mode.ToString();
-                // 设置请求方法
-
-                request.KeepAlive = false;
-
-                if (this.mode == HttpReqMode.POST)
-                {
-                    request.ContentLength = data.Length;
-                    // 设置请求长度
-
-                    using (Stream requestStream = request.GetRequestStream())
-                    {
-                        requestStream.Write(data, 0, data.Length);
-                        // 写入数据
-                    }
-                }
-
-                // 获取当前Http请求的响应实例
-                HttpWebResponse response = request.GetResponse() as HttpWebResponse;
-
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new HttpRequestException(response.StatusCode, response.Headers);
-                }
-
-                using (Stream responseStream = response.GetResponseStream())
-                {
-                    byte[] datas = { };
-                    // 文件类型
-                    if (response.ContentType != "application/json")
-                    {
-                        long contentLength = response.ContentLength;
-                        datas = new byte[contentLength];
-                        int size = 0, realsize = 0;
-                        // 64kb 缓存（一般是CPU 一级缓存的值）
-                        byte[] buffer = new byte[1024 * 64];
-                        while ((size = responseStream.Read(buffer, 0, 1024 * 64)) > 0)
-                        {
-                            Array.Copy(buffer, 0, datas, realsize, size);
-                            realsize += size;
-                            OnPacketReceiveEvent?.Invoke(contentLength, realsize);
-                        }
-                    }
-                    // json类型
-                    else
-                    {
-                        using (MemoryStream ms = new MemoryStream())
-                        {
-                            responseStream.CopyTo(ms);
-                            datas = ms.GetBuffer();
-                            ms.Close();
-                        }
-                    }
-                    responseStream.Close();
-                    response.Close();
-                    OnRequestDoneEvent?.Invoke(datas);
+                    requestStream.Write(data, 0, data.Length);
+                    // 写入数据
                 }
             }
-            catch (Exception e)
+
+            // 获取当前Http请求的响应实例
+            HttpWebResponse response = request.GetResponse() as HttpWebResponse;
+
+            if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw e;
+                throw new HttpRequestException(response.StatusCode, response.Headers);
+            }
+
+            using (Stream responseStream = response.GetResponseStream())
+            {
+                byte[] datas = { };
+                // 文件类型
+                if (response.ContentType != "application/json")
+                {
+                    long contentLength = response.ContentLength;
+                    datas = new byte[contentLength];
+                    int size = 0, realsize = 0;
+                    // 64kb 缓存（一般是CPU 一级缓存的值）
+                    byte[] buffer = new byte[1024 * 64];
+                    while ((size = responseStream.Read(buffer, 0, 1024 * 64)) > 0)
+                    {
+                        Array.Copy(buffer, 0, datas, realsize, size);
+                        realsize += size;
+                        OnPacketReceiveEvent?.Invoke(contentLength, realsize);
+                    }
+                }
+                // json类型
+                else
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        responseStream.CopyTo(ms);
+                        datas = ms.GetBuffer();
+                        ms.Close();
+                    }
+                }
+                responseStream.Close();
+                response.Close();
+                OnRequestDoneEvent?.Invoke(datas);
             }
         }
 

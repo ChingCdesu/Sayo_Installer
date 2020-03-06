@@ -86,7 +86,7 @@ namespace Sayo_Installer
                 cd.Start();
                 return;
             }
-            
+
             // issue: 在有原安装的情况下，修改路径，仍会仅下载差别文件
             // 说明：理论上不允许在有原安装的情况下修改路径，一台电脑仅允许有一个osu!
             installPath = new System.IO.DirectoryInfo(dialog.SelectedPath.Trim()).FullName;
@@ -148,8 +148,14 @@ namespace Sayo_Installer
 
                             int completedThreadCount = 1;
                             foreach (var t in threads)
+                            {
                                 if (t.ThreadState == System.Threading.ThreadState.Stopped)
                                     ++completedThreadCount;
+                                //if (!t.IsAlive)
+                                //{
+                                //    t.Abort();
+                                //}
+                            }
                             this.counter_label.Dispatcher.BeginInvoke(new Action(() =>
                             {
                                 this.counter_label.Content =
@@ -296,10 +302,16 @@ namespace Sayo_Installer
                         }
                     }
                 }
+                else if (Directory.Exists(Environment.CurrentDirectory + "\\osu!"))
+                {
+                    this.installPath = Environment.CurrentDirectory + "\\osu!";
+                }
                 // 如果该文件夹是根目录，那就在根目录下面创建新的文件夹
                 // 防止文件安装在磁盘根目录
                 else if (Environment.CurrentDirectory ==
-                    Directory.GetDirectoryRoot(Environment.CurrentDirectory))
+                    Directory.GetDirectoryRoot(Environment.CurrentDirectory) ||
+                    Directory.GetFiles(Environment.CurrentDirectory).Length
+                    + Directory.GetDirectories(Environment.CurrentDirectory).Length != 1)
                 {
                     Directory.CreateDirectory(Environment.CurrentDirectory + "\\osu!");
                     this.installPath = Environment.CurrentDirectory + "\\osu!";
@@ -308,12 +320,7 @@ namespace Sayo_Installer
                 {
                     this.installPath = Environment.CurrentDirectory;
                 }
-
-                this.Dispatcher.Invoke(new Action(() =>
-                {
-                    this.AddMessage(string.Format("Comparing MD5 of files..."), green);
-                }));
-
+                
                 foreach (var f in files)
                 {
                     if (f.type != "file") continue;
@@ -325,22 +332,23 @@ namespace Sayo_Installer
                             fileMD5.Add(f.Name, f.MD5);
                         else
                         {
-                            FileInfo fi = new FileInfo(Path.Combine(location, f.Name));
+                            FileInfo fi = new FileInfo(Path.Combine(this.installPath, f.Name));
                             TimeSpan ts = fi.LastWriteTimeUtc - new DateTime(1970, 1, 1).ToUniversalTime();
                             if (ts.TotalSeconds >= f.mtime)
                             {
-                                fileMD5.Remove(f.Name);
                                 continue;
                             }
-                            if (fileMD5.ContainsKey(f.Name))
+                            FileStream _fs = new FileStream(installPath + "\\" + f.Name, FileMode.Open);
+                            byte[] hash_b = md5.ComputeHash(_fs);
+                            string hash_s = "";
+                            foreach (var b in hash_b)
                             {
-                                if (fileMD5[f.Name] == f.MD5)
-                                    fileMD5.Remove(f.Name);
-                                else
-                                    fileMD5[f.Name] = f.MD5;
+                                hash_s += string.Format("{0:x2}", b);
                             }
-                            else
+                            if (hash_s != f.MD5)
+                            {
                                 fileMD5.Add(f.Name, f.MD5);
+                            }
                         }
                     }
                 }
